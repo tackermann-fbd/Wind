@@ -124,14 +124,31 @@
   .v-dir{display:flex; align-items:center; gap:5px}
   .arrow{width:15px; height:15px; flex:none}
   .arrow svg{display:block}
-  /* sparkline */
-  .days{margin-top:9px; display:flex; flex-direction:column; gap:2px}
-  .spark{padding:5px 6px 5px 41px; display:flex; align-items:center; gap:9px; border-radius:8px}
-  .spark.best{background:rgba(52,229,201,.07)}
-  .spark svg{flex:1; display:block; height:38px; width:100%}
+  /* day rows: chart + windguru tiles */
+  .days{margin-top:9px; display:flex; flex-direction:column; gap:3px}
+  .hourhdr{display:flex; gap:9px; padding:0 6px 1px}
+  .hourhdr .hh{flex:1; display:grid; gap:2px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--mut)}
+  .hourhdr .sp{flex:none; min-width:62px}
+  .trow{display:flex; align-items:center; gap:9px; padding:4px 6px; border-radius:8px}
+  .trow.chart{padding-left:41px}
+  .trow.best{background:rgba(52,229,201,.07)}
+  .trow svg{flex:1; display:block; height:38px; width:100%}
+  .tilerow{flex:1; display:grid; gap:2px}
+  .tile{display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border-radius:5px; padding:3px 0; line-height:1.05; min-height:40px;
+    font-family:'JetBrains Mono',monospace;}
+  .tile b{font-size:13px; font-weight:700}
+  .tile .g{font-size:8.5px; opacity:.82}
+  .tile .ar{font-size:11px; line-height:1; display:block; margin-bottom:1px}
+  .tile.empty{background:var(--bg); opacity:.4}
   .day{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink); text-align:right; flex:none; min-width:62px}
-  .day small{display:block; color:var(--mut); font-size:9px; letter-spacing:.08em}
-  .spark.best .day b{color:var(--cyan)}
+  .day small{display:block; color:var(--mut); font-size:9px; letter-spacing:.06em}
+  .trow.best .day b{color:var(--cyan)}
+  .metabtns{display:flex; gap:4px; align-items:center}
+  .scale{display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace;
+    font-size:9px; color:var(--mut); margin:-4px 4px 12px}
+  .scale i{height:7px; flex:1; border-radius:4px;
+    background:linear-gradient(90deg,#16323F,#2f6f8a,#34E5C9,#8FE34A,#F4D03F,#F4A93C,#F26d5b,#C0398A)}
   footer{color:var(--mut); font-size:11px; line-height:1.55; margin-top:18px; padding:0 2px}
   footer a{color:var(--cyan)}
   .legend{display:flex; gap:14px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--mut); margin:0 2px 12px; flex-wrap:wrap}
@@ -175,8 +192,12 @@
 <div id="status" class="status">Bereit. Tippe „Spots ranken“.</div>
 <div class="meta" id="meta" hidden>
   <h2 id="metatxt"></h2>
-  <button class="toggle" id="toggle"></button>
+  <div class="metabtns">
+    <button class="toggle" id="viewtoggle"></button>
+    <button class="toggle" id="toggle"></button>
+  </div>
 </div>
+<div class="scale" id="scale" hidden><span>schwach</span><i></i><span>40+ kn</span></div>
 <div id="list"></div>
 
 <footer>
@@ -185,6 +206,7 @@
     <span><i style="background:var(--amber)"></i>Böen</span>
     <span><i style="background:var(--line);height:8px;width:14px"></i>Session-Fenster</span>
   </div>
+  Kacheln: große Zahl = Wind, kleine = Böen, Pfeil = Windrichtung. „Grafik“/„Kacheln“ schaltet die Ansicht um.
   Wind in Knoten, 10 m. Distanz = Luftlinie ab Düsseldorf, Fahrzeit grob geschätzt.
   Küsten- &amp; Delta-Spots sind etablierte Kitestrände, haben aber lokale Zonen/Badezeiten — vor Ort auf die Schilder achten.
   Daten: <a href="https://open-meteo.com">open-meteo.com</a> (CC-BY 4.0).
@@ -274,10 +296,13 @@ function windScore(kn){
 // fill controls
 (function init(){
   const t=new Date();const iso=d=>d.toISOString().slice(0,10);
-  const to=new Date(t);to.setDate(to.getDate()+3);
-  $('from').value=iso(t);$('from').min=iso(t);
+  // nächstes Wochenende vorwählen (Sa–So); heute Sa => dieses, sonst kommendes
+  const dToSat=(6-t.getDay()+7)%7;
+  const sat=new Date(t);sat.setDate(t.getDate()+dToSat);
+  const sun=new Date(sat);sun.setDate(sat.getDate()+1);
+  $('from').value=iso(sat);$('from').min=iso(t);
   const max=new Date(t);max.setDate(max.getDate()+13);
-  $('from').max=iso(max);$('to').min=iso(t);$('to').max=iso(max);$('to').value=iso(to);
+  $('from').max=iso(max);$('to').min=iso(t);$('to').max=iso(max);$('to').value=iso(sun);
   for(let h=0;h<=23;h++){
     const o1=new Option(String(h).padStart(2,'0'),h),o2=new Option(String(h).padStart(2,'0'),h);
     $('h1').add(o1);$('h2').add(o2);
@@ -285,11 +310,26 @@ function windScore(kn){
   $('h1').value=10;$('h2').value=19;
 })();
 
-let lastRows=null, showAll=false;
+let lastRows=null, showAll=false, view='tiles';
 
 $('go').addEventListener('click',run);
 $('toggle').addEventListener('click',()=>{showAll=!showAll;render();});
+$('viewtoggle').addEventListener('click',()=>{view=view==='tiles'?'chart':'tiles';render();});
 $('w').addEventListener('input',()=>{ if(lastRows) render(); });
+
+// Windguru-Farbskala für Knoten
+const WIND_STOPS=[[0,'#16323F'],[6,'#2f6f8a'],[10,'#2bb6bf'],[14,'#34E5C9'],[18,'#8FE34A'],[23,'#F4D03F'],[28,'#F4A93C'],[34,'#F26d5b'],[42,'#C0398A'],[55,'#7d4bd6']];
+const hex2rgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+function windColor(kn){
+  const s=WIND_STOPS;
+  if(kn<=s[0][0])return s[0][1];
+  for(let i=1;i<s.length;i++){if(kn<=s[i][0]){
+    const [x0,c0]=s[i-1],[x1,c1]=s[i],tt=(kn-x0)/(x1-x0),a=hex2rgb(c0),b=hex2rgb(c1);
+    return '#'+[0,1,2].map(j=>Math.round(a[j]+(b[j]-a[j])*tt).toString(16).padStart(2,'0')).join('');
+  }}
+  return s[s.length-1][1];
+}
+function textOn(hex){const[r,g,b]=hex2rgb(hex);return (0.299*r+0.587*g+0.114*b)>150?'#06222b':'#E8F2F1';}
 
 async function run(){
   const from=$('from').value,to=$('to').value;
@@ -357,9 +397,10 @@ function render(){
   const shown=showAll?rows:rows.slice(0,12);
   $('status').style.display='none';
   $('meta').hidden=false;
-  const d=new Date(rows[0].wind.day);
+  $('scale').hidden=view!=='tiles';
   $('metatxt').textContent=rows.length+' Spots · '+($('from').value===$('to').value?'1 Tag':'Zeitraum');
   $('toggle').textContent=showAll?'nur Top 12':'alle '+rows.length+' zeigen';
+  $('viewtoggle').textContent=view==='tiles'?'Grafik':'Kacheln';
   $('list').innerHTML=shown.map((r,i)=>card(r,i)).join('');
 }
 
@@ -381,8 +422,14 @@ function card(r,i){
       <div><span>Richtung</span><b class="v-dir"><span class="arrow">${arrow(wd.dir)}</span>${dir}</b></div>
       <div><span>fahrbar</span><b>${wd.rideable} h</b></div>
     </div>
-    <div class="days">${rows}</div>
+    <div class="days">${view==='tiles'?hourHeader(r):''}${rows}</div>
   </div>`;
+}
+
+function hourHeader(r){
+  const n=r.h2-r.h1+1;let cells='';
+  for(let h=r.h1;h<=r.h2;h++)cells+=`<span>${h}</span>`;
+  return `<div class="hourhdr"><div class="hh" style="grid-template-columns:repeat(${n},1fr)">${cells}</div><div class="sp">Uhr</div></div>`;
 }
 
 function dayRow(day,r){
@@ -390,10 +437,27 @@ function dayRow(day,r){
   const dayLbl=WD[dt.getDay()]+' '+dt.getDate()+'.'+(dt.getMonth()+1)+'.';
   const best=day===r.wind;
   const dir=COMPASS[Math.round(day.dir/22.5)%16];
-  return `<div class="spark${best?' best':''}">
-    ${spark(day,r.h1,r.h2)}
+  const cls=view==='tiles'?'tiles':'chart';
+  const body=view==='tiles'?tileRow(day,r):spark(day,r.h1,r.h2);
+  return `<div class="trow ${cls}${best?' best':''}">
+    ${body}
     <div class="day"><b>${dayLbl}</b><small>${day.peak.toFixed(0)} kn ${dir} · ${String(day.bestHr).padStart(2,'0')} Uhr</small></div>
   </div>`;
+}
+
+function tileRow(day,r){
+  const n=r.h2-r.h1+1;let cells='';
+  for(let h=r.h1;h<=r.h2;h++){
+    const a=day.dayFull.find(x=>x.hr===h);
+    if(!a){cells+='<div class="tile empty"></div>';continue;}
+    const bg=windColor(a.ws),fg=textOn(bg),rot=(a.wd+180)%360;
+    cells+=`<div class="tile" style="background:${bg};color:${fg}">
+      <span class="ar" style="transform:rotate(${rot}deg)">↑</span>
+      <b>${Math.round(a.ws)}</b>
+      <span class="g">${Math.round(a.gs)}</span>
+    </div>`;
+  }
+  return `<div class="tilerow" style="grid-template-columns:repeat(${n},1fr)">${cells}</div>`;
 }
 
 function arrow(fromDeg){
