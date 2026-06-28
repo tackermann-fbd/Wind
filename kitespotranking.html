@@ -323,6 +323,9 @@ let lastRows=null, showAll=false, view='tiles';
 $('go').addEventListener('click',run);
 $('toggle').addEventListener('click',()=>{showAll=!showAll;render();});
 $('viewtoggle').addEventListener('click',()=>{view=view==='tiles'?'chart':'tiles';render();});
+// Datumsfelder gekoppelt halten: „Bis“ nie vor „Von“
+$('from').addEventListener('change',()=>{const f=$('from').value;$('to').min=f;if($('to').value&&$('to').value<f)$('to').value=f;});
+$('to').addEventListener('change',()=>{const tv=$('to').value;if(tv&&$('from').value>tv)$('from').value=tv;});
 $('w').addEventListener('input',()=>{ if(lastRows) render(); });
 
 // Windguru-Farbskala für Knoten
@@ -376,6 +379,8 @@ function consensus(H){
 async function run(){
   const from=$('from').value,to=$('to').value;
   const h1=+$('h1').value,h2=+$('h2').value;
+  if(!from||!to){setStatus('Bitte „Von“- und „Bis“-Datum wählen.',true);return;}
+  if(to<from){setStatus('Datum: „Bis“ darf nicht vor „Von“ liegen.',true);return;}
   if(h2<=h1){setStatus('Tagesfenster: „bis“ muss nach „von“ liegen.',true);return;}
   $('go').disabled=true;
   setStatus('<span class="spin"></span>Hole '+MODELS.length+' Modelle für '+SPOTS.length+' Spots …');
@@ -387,14 +392,14 @@ async function run(){
     '&timezone=Europe%2FBerlin&start_date='+from+'&end_date='+to;
   try{
     const r=await fetch(url);
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    let data=await r.json();
+    let data=await r.json().catch(()=>null);
+    if(!r.ok)throw new Error((data&&data.reason)?data.reason:('HTTP '+r.status));
     if(!Array.isArray(data))data=[data];
     lastRows=data.map((d,i)=>analyse(SPOTS[i],d,h1,h2)).filter(Boolean);
     if(!lastRows.length){setStatus('Keine Daten für diesen Zeitraum erhalten.',true);$('go').disabled=false;return;}
     showAll=false; render();
   }catch(e){
-    setStatus('Abruf fehlgeschlagen ('+e.message+'). Internet prüfen und erneut versuchen.',true);
+    setStatus('Abruf fehlgeschlagen: '+e.message+'. Bitte Eingaben/Internet prüfen und erneut versuchen.',true);
   }
   $('go').disabled=false;
 }
