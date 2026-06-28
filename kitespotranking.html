@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-title" content="Kiteranking">
 <meta name="theme-color" content="#0A1820">
 <title>Kiteranking · ab Düsseldorf</title>
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Kiteranking%22%2C%22short_name%22%3A%22Kiteranking%22%2C%22description%22%3A%22Kitespot-Ranking%20ab%20D%C3%BCsseldorf%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait%22%2C%22background_color%22%3A%22%230A1820%22%2C%22theme_color%22%3A%22%230A1820%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D'http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg'%2520viewBox%253D'0%25200%2520512%2520512'%253E%253Crect%2520width%253D'512'%2520height%253D'512'%2520rx%253D'104'%2520fill%253D'%25230A1820'%252F%253E%253Cg%2520fill%253D'none'%2520stroke%253D'%252334E5C9'%2520stroke-width%253D'28'%2520stroke-linecap%253D'round'%253E%253Cpath%2520d%253D'M104%2520196h168a46%252046%25200%25201%25200-46-46'%252F%253E%253Cpath%2520d%253D'M104%2520280h232a46%252046%25200%25201%25201-46%252046'%252F%253E%253Cpath%2520d%253D'M104%2520364h150'%252F%253E%253C%252Fg%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20512%20512'%3E%3Crect%20width%3D'512'%20height%3D'512'%20rx%3D'104'%20fill%3D'%230A1820'%2F%3E%3Cg%20fill%3D'none'%20stroke%3D'%2334E5C9'%20stroke-width%3D'28'%20stroke-linecap%3D'round'%3E%3Cpath%20d%3D'M104%20196h168a46%2046%200%201%200-46-46'%2F%3E%3Cpath%20d%3D'M104%20280h232a46%2046%200%201%201-46%2046'%2F%3E%3Cpath%20d%3D'M104%20364h150'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20512%20512'%3E%3Crect%20width%3D'512'%20height%3D'512'%20rx%3D'104'%20fill%3D'%230A1820'%2F%3E%3Cg%20fill%3D'none'%20stroke%3D'%2334E5C9'%20stroke-width%3D'28'%20stroke-linecap%3D'round'%3E%3Cpath%20d%3D'M104%20196h168a46%2046%200%201%200-46-46'%2F%3E%3Cpath%20d%3D'M104%20280h232a46%2046%200%201%201-46%2046'%2F%3E%3Cpath%20d%3D'M104%20364h150'%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -111,8 +114,9 @@
   .name b{font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:16px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .name small{color:var(--mut); font-size:11.5px; font-family:'JetBrains Mono',monospace}
   .score{text-align:right; flex:none}
-  .score b{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:20px; color:var(--cyan)}
-  .score small{display:block; font-size:9px; letter-spacing:.14em; color:var(--mut); text-transform:uppercase}
+  .score b{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:22px; color:var(--cyan)}
+  .score .den{font-size:13px; color:var(--mut); font-weight:500}
+  .score small{display:block; font-size:9px; letter-spacing:.1em; color:var(--mut); text-transform:uppercase}
   .metrics{
     display:flex; gap:14px; flex-wrap:wrap; margin:10px 0 2px; padding-left:41px;
     font-family:'JetBrains Mono',monospace; font-size:13px;
@@ -183,6 +187,18 @@
       <span style="margin-left:auto;color:var(--mut);font-size:12px">Uhr</span>
     </div>
   </div>
+  <div class="weight" style="margin-top:14px">
+    <div class="field"><label>Max. Entfernung (Luftlinie)</label></div>
+    <div class="hours">
+      <select id="maxd">
+        <option value="0">egal</option>
+        <option value="150">≤ 150 km</option>
+        <option value="250">≤ 250 km</option>
+        <option value="350">≤ 350 km</option>
+        <option value="500">≤ 500 km</option>
+      </select>
+    </div>
+  </div>
   <div class="weight">
     <div class="ends"><span>reine <b>Windstärke</b></span><span><b>Nähe</b> zählt</span></div>
     <input type="range" id="w" min="0" max="100" value="35">
@@ -208,7 +224,8 @@
     <span><i style="background:var(--line);height:8px;width:14px"></i>Session-Fenster</span>
   </div>
   Kacheln: große Zahl = Wind, kleine = Böen, Pfeil = Windrichtung, farbiger Balken unten = Konfidenz. „Grafik“/„Kacheln“ schaltet die Ansicht um.
-  Konfidenz = Übereinstimmung der Modelle ECMWF, ICON &amp; GFS (geringe Streuung → <span style="color:var(--cyan)">hoch</span>, große → <span style="color:var(--red)">gering</span>); unsichere Tage werden im Score leicht abgewertet.
+  „fahrbar X/Y“ = Stunden im Tagesfenster mit 12–35 kn (Y = Länge des Fensters).
+  Konfidenz = Übereinstimmung von ECMWF, ICON &amp; GFS bei Wind, Böen und Richtung (gering → <span style="color:var(--cyan)">hoch</span>, groß → <span style="color:var(--red)">gering</span>); unsichere Tage werden im Score leicht abgewertet.
   Wind in Knoten, 10 m. Distanz = Luftlinie ab Düsseldorf, Fahrzeit grob geschätzt.
   Küsten- &amp; Delta-Spots sind etablierte Kitestrände, haben aber lokale Zonen/Badezeiten — vor Ort auf die Schilder achten.
   Daten: <a href="https://open-meteo.com">open-meteo.com</a> (CC-BY 4.0).
@@ -216,7 +233,9 @@
 
 <script>
 const ORIGIN={lat:51.2277,lon:6.7735};
-// Wettermodelle für den Konsens. Reihenfolge = Priorität (Richtung kommt vom ersten verfügbaren).
+// "fahrbares" Windband in Knoten (zu wenig = kein Spaß, zu viel = unfahrbar/gefährlich)
+const RIDE_MIN=12, RIDE_MAX=35;
+// Wettermodelle für den Konsens. Reihenfolge = Priorität (zirkulärer Mittelwert für Richtung).
 const MODELS=[
  {id:'ecmwf_ifs025', w:1.0,  label:'ECMWF'},
  {id:'icon_seamless',w:0.9,  label:'ICON'},
@@ -327,6 +346,7 @@ $('viewtoggle').addEventListener('click',()=>{view=view==='tiles'?'chart':'tiles
 $('from').addEventListener('change',()=>{const f=$('from').value;$('to').min=f;if($('to').value&&$('to').value<f)$('to').value=f;});
 $('to').addEventListener('change',()=>{const tv=$('to').value;if(tv&&$('from').value>tv)$('from').value=tv;});
 $('w').addEventListener('input',()=>{ if(lastRows) render(); });
+$('maxd').addEventListener('change',()=>{ if(lastRows) render(); });
 
 // Windguru-Farbskala für Knoten
 const WIND_STOPS=[[0,'#16323F'],[6,'#2f6f8a'],[10,'#2bb6bf'],[14,'#34E5C9'],[18,'#8FE34A'],[23,'#F4D03F'],[28,'#F4A93C'],[34,'#F26d5b'],[42,'#C0398A'],[55,'#7d4bd6']];
@@ -342,36 +362,42 @@ function windColor(kn){
 }
 function textOn(hex){const[r,g,b]=hex2rgb(hex);return (0.299*r+0.587*g+0.114*b)>150?'#06222b':'#E8F2F1';}
 
-// Konfidenz aus Modell-Streuung (std in kn) + Anzahl beteiligter Modelle
-function confScore(std,k){
+function std(a){if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/a.length);}
+// Konfidenz aus Modell-Uneinigkeit: Streuung von Wind (kn), Böen (kn) und Richtung (Grad)
+function confScore(sd,k){
   if(k<2)return {score:null,tier:'1 Mod.',col:'#8AA8AC'};
-  const score=Math.max(0,Math.min(100,Math.round(100-std*16)));
+  const pen=sd.ws*14 + sd.gs*5 + sd.dir*0.30;
+  const score=Math.max(0,Math.min(100,Math.round(100-pen)));
   const tier=score>=70?'hoch':score>=45?'mittel':'gering';
   const col=score>=70?'#34E5C9':score>=45?'#F4A93C':'#F26d5b';
   return {score,tier,col};
 }
-// pro Stunde die verfügbaren Modelle zu einem gewichteten Mittel + Streuung zusammenfassen
+// pro Stunde die verfügbaren Modelle zu gewichtetem Mittel + Streuung zusammenfassen
 function consensus(H){
   const present=MODELS.filter(m=>Array.isArray(H['wind_speed_10m_'+m.id]));
   const used=present.length?present:[{id:null,w:1}];
   const n=H.time.length,C=new Array(n);
   for(let i=0;i<n;i++){
-    let wsum=0,wn=0,gsum=0,gn=0,dir=null;const vals=[];
+    let wsum=0,wn=0,gsum=0,gn=0,sx=0,sy=0,dn=0;const wsv=[],gsv=[];
     for(const m of used){
       const ws=m.id?H['wind_speed_10m_'+m.id]:H.wind_speed_10m;
       const gs=m.id?H['wind_gusts_10m_'+m.id]:H.wind_gusts_10m;
       const wd=m.id?H['wind_direction_10m_'+m.id]:H.wind_direction_10m;
       const v=ws&&ws[i];
       if(v==null||isNaN(v))continue;
-      vals.push(v);wsum+=v*m.w;wn+=m.w;
-      if(gs&&gs[i]!=null){gsum+=gs[i]*m.w;gn+=m.w;}
-      if(dir==null&&wd&&wd[i]!=null)dir=wd[i];
+      wsv.push(v);wsum+=v*m.w;wn+=m.w;
+      if(gs&&gs[i]!=null){gsv.push(gs[i]);gsum+=gs[i]*m.w;gn+=m.w;}
+      if(wd&&wd[i]!=null){const r=wd[i]*Math.PI/180;sx+=m.w*Math.cos(r);sy+=m.w*Math.sin(r);dn+=m.w;}
     }
-    if(!vals.length){C[i]=null;continue;}
-    const mean=wsum/wn;
-    const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
-    const std=Math.sqrt(vals.reduce((a,b)=>a+(b-avg)**2,0)/vals.length);
-    C[i]={ws:mean,gs:gn?gsum/gn:mean,wd:dir==null?0:dir,std,k:vals.length};
+    if(!wsv.length){C[i]=null;continue;}
+    let dir=0,dirStd=0;
+    if(dn){
+      dir=(Math.atan2(sy/dn,sx/dn)*180/Math.PI+360)%360;          // zirkulärer Mittelwert
+      const R=Math.min(1,Math.sqrt((sx/dn)**2+(sy/dn)**2));         // Resultantenlänge 0..1
+      dirStd=R>=0.99995?0:Math.min(180,Math.sqrt(-2*Math.log(R))*180/Math.PI);
+    }
+    C[i]={ws:wsum/wn,gs:gn?gsum/gn:wsum/wn,wd:dir,k:wsv.length,
+          sd:{ws:std(wsv),gs:std(gsv),dir:dirStd}};
   }
   return C;
 }
@@ -412,7 +438,7 @@ function analyse(spot,d,h1,h2){
   for(let i=0;i<H.time.length;i++){
     const c=C[i]; if(!c)continue;
     const t=H.time[i];const hr=+t.slice(11,13);const day=t.slice(0,10);
-    const rec={hr,ws:c.ws,gs:c.gs,wd:c.wd,std:c.std,k:c.k};
+    const rec={hr,ws:c.ws,gs:c.gs,wd:c.wd,sd:c.sd,k:c.k};
     const e=dayMap[day]||(dayMap[day]={window:[],full:[]});
     e.full.push(rec);
     if(hr>=h1&&hr<=h2)e.window.push(rec);
@@ -427,9 +453,9 @@ function analyse(spot,d,h1,h2){
     const sc=windScore(blend);
     const pk=arr.find(a=>a.ws===peak);
     const gust=Math.max(...arr.map(a=>a.gs));
-    const rideable=arr.filter(a=>a.ws>=12).length;
-    const avgStd=arr.reduce((s,a)=>s+a.std,0)/arr.length;
-    const conf=confScore(avgStd,Math.min(...arr.map(a=>a.k)));
+    const rideable=arr.filter(a=>a.ws>=RIDE_MIN&&a.ws<=RIDE_MAX).length;
+    const mean=k=>arr.reduce((s,a)=>s+a.sd[k],0)/arr.length;
+    const conf=confScore({ws:mean('ws'),gs:mean('gs'),dir:mean('dir')},Math.min(...arr.map(a=>a.k)));
     days.push({day,sc,peak,avg,gust,dir:pk.wd,bestHr:pk.hr,rideable,conf,dayFull:dayMap[day].full});
   }
   if(!days.length)return null;
@@ -439,8 +465,14 @@ function analyse(spot,d,h1,h2){
 
 function render(){
   const w=+$('w').value/100;
-  const kms=lastRows.map(r=>r.km),dmin=Math.min(...kms),dmax=Math.max(...kms);
-  lastRows.forEach(r=>{
+  const maxKm=+$('maxd').value;
+  const pool=maxKm?lastRows.filter(r=>r.km<=maxKm):lastRows;
+  if(!pool.length){
+    $('meta').hidden=true;$('scale').hidden=true;$('list').innerHTML='';
+    setStatus('Kein Spot innerhalb ≤ '+maxKm+' km.',true);return;
+  }
+  const kms=pool.map(r=>r.km),dmin=Math.min(...kms),dmax=Math.max(...kms);
+  pool.forEach(r=>{
     const prox=dmax===dmin?100:100*(1-(r.km-dmin)/(dmax-dmin));
     r.prox=prox;
     // unsichere Tage leicht abwerten (Konfidenz 0..100 -> Faktor 0,7..1,0; unbekannt = 0,85)
@@ -448,12 +480,12 @@ function render(){
     const cf=cs==null?0.85:0.7+0.3*cs/100;
     r.total=((1-w)*r.wind.sc + w*prox)*cf;
   });
-  const rows=[...lastRows].sort((a,b)=>b.total-a.total);
+  const rows=[...pool].sort((a,b)=>b.total-a.total);
   const shown=showAll?rows:rows.slice(0,12);
   $('status').style.display='none';
   $('meta').hidden=false;
   $('scale').hidden=view!=='tiles';
-  $('metatxt').textContent=rows.length+' Spots · '+($('from').value===$('to').value?'1 Tag':'Zeitraum');
+  $('metatxt').textContent=rows.length+' Spots'+(maxKm?' ≤ '+maxKm+' km':'')+' · '+($('from').value===$('to').value?'1 Tag':'Zeitraum');
   $('toggle').textContent=showAll?'nur Top 12':'alle '+rows.length+' zeigen';
   $('viewtoggle').textContent=view==='tiles'?'Grafik':'Kacheln';
   $('list').innerHTML=shown.map((r,i)=>card(r,i)).join('');
@@ -465,17 +497,17 @@ function card(r,i){
   const dh=driveH(r.km);
   const driveTxt=dh<1?Math.round(dh*60)+' min':dh.toFixed(1).replace('.',',')+' h';
   const rows=r.days.map(day=>dayRow(day,r)).join('');
+  const winN=r.h2-r.h1+1;
   return `<div class="card ${i===0?'top':''}">
     <div class="ctop">
       <div class="rank">${i+1}</div>
       <div class="name"><b>${r.spot[0]}</b><small>${r.spot[1]} · ${Math.round(r.km)} km · ~${driveTxt}</small></div>
-      <div class="score"><b>${Math.round(r.total)}</b><small>Score</small></div>
+      <div class="score"><b>${wd.rideable}<span class="den">/${winN}</span></b><small>fahrbar · Score ${Math.round(r.total)}</small></div>
     </div>
     <div class="metrics">
       <div><span>Peak</span><b>${wd.peak.toFixed(1)} kn</b></div>
       <div><span>Böen</span><b class="v-gust">${Math.round(wd.gust)}</b></div>
       <div><span>Richtung</span><b class="v-dir"><span class="arrow">${arrow(wd.dir)}</span>${dir}</b></div>
-      <div><span>fahrbar</span><b>${wd.rideable} h</b></div>
       <div><span>Konfidenz</span><b style="color:${wd.conf.col}">${wd.conf.tier}${wd.conf.score==null?'':' '+wd.conf.score+'%'}</b></div>
     </div>
     <div class="days">${view==='tiles'?hourHeader(r):''}${rows}</div>
@@ -507,7 +539,7 @@ function tileRow(day,r){
     const a=day.dayFull.find(x=>x.hr===h);
     if(!a){cells+='<div class="tile empty"></div>';continue;}
     const bg=windColor(a.ws),fg=textOn(bg),rot=(a.wd+180)%360;
-    const cc=confScore(a.std,a.k).col;
+    const cc=confScore(a.sd,a.k).col;
     cells+=`<div class="tile" style="background:${bg};color:${fg};box-shadow:inset 0 -3px 0 ${cc}">
       <span class="ar" style="transform:rotate(${rot}deg)">↑</span>
       <b>${Math.round(a.ws)}</b>
