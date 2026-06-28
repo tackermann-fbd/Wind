@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kiteranking">
+<meta name="theme-color" content="#0A1820">
+<title>Kiteranking · ab Düsseldorf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A1820; --bg2:#0E2029; --surf:#122A35; --surf2:#16323F;
+    --line:#21404C; --ink:#E8F2F1; --mut:#8AA8AC;
+    --cyan:#34E5C9; --cyan-d:#1FB8A0; --amber:#F4A93C; --red:#F26d5b;
+    --rad:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, #103040 0%, var(--bg) 55%) fixed,
+      var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:max(14px,env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom));
+    max-width:600px; margin:0 auto;
+  }
+  /* ---------- header ---------- */
+  header{padding:8px 2px 18px}
+  .kicker{
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.28em;
+    text-transform:uppercase; color:var(--cyan); margin:0 0 6px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif; font-weight:700;
+    font-size:30px; line-height:1.02; margin:0; letter-spacing:-.01em;
+  }
+  h1 span{color:var(--mut); font-weight:500}
+  .sub{color:var(--mut); font-size:13px; margin:8px 0 0; line-height:1.45}
+  /* ---------- controls ---------- */
+  .panel{
+    background:linear-gradient(180deg,var(--surf),var(--bg2));
+    border:1px solid var(--line); border-radius:var(--rad);
+    padding:14px; margin-bottom:16px;
+  }
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .field label{
+    display:block; font-family:'JetBrains Mono',monospace; font-size:10px;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--mut); margin:0 0 5px;
+  }
+  input[type=date],select{
+    width:100%; background:var(--bg); color:var(--ink);
+    border:1px solid var(--line); border-radius:9px; padding:9px 10px;
+    font-family:'JetBrains Mono',monospace; font-size:14px; -webkit-appearance:none; appearance:none;
+  }
+  input[type=date]{min-height:40px}
+  .hours{display:flex; align-items:center; gap:8px}
+  .hours select{text-align:center}
+  .hours span{color:var(--mut); font-size:13px}
+  .weight{margin-top:14px}
+  .weight .ends{display:flex; justify-content:space-between; font-size:11px; color:var(--mut); margin-bottom:4px}
+  .weight .ends b{color:var(--ink); font-weight:600}
+  input[type=range]{
+    width:100%; -webkit-appearance:none; appearance:none; height:30px; background:transparent; margin:0;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:6px; border-radius:6px;
+    background:linear-gradient(90deg,var(--cyan),#2a6f8a);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:24px; height:24px; margin-top:-9px; border-radius:50%;
+    background:#fff; border:3px solid var(--cyan-d); box-shadow:0 2px 8px rgba(0,0,0,.4); cursor:pointer;
+  }
+  button.go{
+    width:100%; margin-top:14px; padding:13px; border:0; border-radius:11px; cursor:pointer;
+    background:linear-gradient(180deg,var(--cyan),var(--cyan-d)); color:#04231d;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; letter-spacing:.01em;
+  }
+  button.go:active{transform:translateY(1px)}
+  button.go:disabled{opacity:.55}
+  /* ---------- status ---------- */
+  .status{text-align:center; color:var(--mut); font-size:14px; padding:26px 10px; line-height:1.5}
+  .status.err{color:var(--amber)}
+  .spin{display:inline-block; width:18px; height:18px; border:2px solid var(--line);
+    border-top-color:var(--cyan); border-radius:50%; animation:sp .8s linear infinite; vertical-align:-4px; margin-right:8px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  /* ---------- results ---------- */
+  .meta{display:flex; justify-content:space-between; align-items:baseline; margin:2px 2px 10px}
+  .meta h2{font-family:'Space Grotesk',sans-serif; font-size:15px; margin:0; font-weight:500; color:var(--mut)}
+  .meta .toggle{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--cyan); background:none; border:0; cursor:pointer; padding:4px}
+  .card{
+    background:var(--surf); border:1px solid var(--line); border-radius:var(--rad);
+    padding:13px 13px 9px; margin-bottom:10px; position:relative; overflow:hidden;
+    animation:rise .4s ease both;
+  }
+  @keyframes rise{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+  .card.top{border-color:var(--cyan-d); background:linear-gradient(180deg,#163842,var(--surf))}
+  .ctop{display:flex; align-items:center; gap:11px}
+  .rank{
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:17px;
+    min-width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:var(--bg); color:var(--mut); border:1px solid var(--line); flex:none;
+  }
+  .card.top .rank{background:var(--cyan); color:#04231d; border-color:var(--cyan)}
+  .name{flex:1; min-width:0}
+  .name b{font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:16px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .name small{color:var(--mut); font-size:11.5px; font-family:'JetBrains Mono',monospace}
+  .score{text-align:right; flex:none}
+  .score b{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:20px; color:var(--cyan)}
+  .score small{display:block; font-size:9px; letter-spacing:.14em; color:var(--mut); text-transform:uppercase}
+  .metrics{
+    display:flex; gap:14px; flex-wrap:wrap; margin:10px 0 2px; padding-left:41px;
+    font-family:'JetBrains Mono',monospace; font-size:13px;
+  }
+  .metrics div{display:flex; flex-direction:column; line-height:1.2}
+  .metrics span{font-size:9px; letter-spacing:.12em; color:var(--mut); text-transform:uppercase}
+  .metrics b{font-weight:700}
+  .v-gust{color:var(--amber)}
+  .v-dir{display:flex; align-items:center; gap:5px}
+  .arrow{width:15px; height:15px; flex:none}
+  .arrow svg{display:block}
+  /* sparkline */
+  .spark{margin-top:9px; padding-left:41px; display:flex; align-items:center; gap:9px}
+  .spark svg{flex:1; display:block; height:42px; width:100%}
+  .day{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink); text-align:right; flex:none; min-width:54px}
+  .day small{display:block; color:var(--mut); font-size:9px; letter-spacing:.1em}
+  footer{color:var(--mut); font-size:11px; line-height:1.55; margin-top:18px; padding:0 2px}
+  footer a{color:var(--cyan)}
+  .legend{display:flex; gap:14px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--mut); margin:0 2px 12px; flex-wrap:wrap}
+  .legend i{width:18px; height:3px; border-radius:2px; display:inline-block; vertical-align:middle; margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">ab Düsseldorf · Open-Meteo</p>
+  <h1>Kiteranking<br><span>bestes Fenster, gewichtet nach Nähe</span></h1>
+  <p class="sub">Zeitraum &amp; Tagesfenster wählen — die App holt die Vorhersage für ~45 legale Kitespots und sucht je Spot die beste Session.</p>
+</header>
+
+<div class="panel">
+  <div class="grid">
+    <div class="field">
+      <label>Von</label>
+      <input type="date" id="from">
+    </div>
+    <div class="field">
+      <label>Bis</label>
+      <input type="date" id="to">
+    </div>
+  </div>
+  <div class="weight" style="margin-top:14px">
+    <div class="field"><label>Tagesfenster</label></div>
+    <div class="hours">
+      <select id="h1"></select>
+      <span>bis</span>
+      <select id="h2"></select>
+      <span style="margin-left:auto;color:var(--mut);font-size:12px">Uhr</span>
+    </div>
+  </div>
+  <div class="weight">
+    <div class="ends"><span>reine <b>Windstärke</b></span><span><b>Nähe</b> zählt</span></div>
+    <input type="range" id="w" min="0" max="100" value="35">
+  </div>
+  <button class="go" id="go">Spots ranken</button>
+</div>
+
+<div id="status" class="status">Bereit. Tippe „Spots ranken“.</div>
+<div class="meta" id="meta" hidden>
+  <h2 id="metatxt"></h2>
+  <button class="toggle" id="toggle"></button>
+</div>
+<div id="list"></div>
+
+<footer>
+  <div class="legend" style="margin-top:4px">
+    <span><i style="background:var(--cyan)"></i>Mittelwind</span>
+    <span><i style="background:var(--amber)"></i>Böen</span>
+    <span><i style="background:var(--line);height:8px;width:14px"></i>Session-Fenster</span>
+  </div>
+  Wind in Knoten, 10 m. Distanz = Luftlinie ab Düsseldorf, Fahrzeit grob geschätzt.
+  Küsten- &amp; Delta-Spots sind etablierte Kitestrände, haben aber lokale Zonen/Badezeiten — vor Ort auf die Schilder achten.
+  Daten: <a href="https://open-meteo.com">open-meteo.com</a> (CC-BY 4.0).
+</footer>
+
+<script>
+const ORIGIN={lat:51.2277,lon:6.7735};
+// Legale / etablierte Kitespots. region kurz für die Zeile.
+const SPOTS=[
+ // IJsselmeer & Randmeren
+ ["Strand Horst","Wolderwijd",52.312,5.597],
+ ["Workum · It Soal","IJsselmeer",52.965,5.408],
+ ["Hindeloopen","IJsselmeer",52.942,5.394],
+ ["Makkum","IJsselmeer",53.050,5.394],
+ ["Stavoren","IJsselmeer",52.884,5.366],
+ ["Lemmer","IJsselmeer",52.846,5.708],
+ ["Medemblik","IJsselmeer",52.770,5.100],
+ ["Andijk","IJsselmeer",52.745,5.190],
+ ["Enkhuizen","IJsselmeer",52.703,5.293],
+ ["Hoorn","Markermeer",52.642,5.060],
+ // Markermeer / IJmeer
+ ["Almere-Strand","Markermeer",52.336,5.236],
+ ["Lelystad","Markermeer",52.514,5.430],
+ ["Muiderberg","IJmeer",52.325,5.073],
+ // Zuid-Holland Küste
+ ["Hoek van Holland","ZH-Küste",51.988,4.118],
+ ["Ter Heijde","ZH-Küste",52.018,4.165],
+ ["Kijkduin","ZH-Küste",52.067,4.225],
+ ["Scheveningen","ZH-Küste",52.108,4.275],
+ ["Wassenaarslag","ZH-Küste",52.150,4.355],
+ ["Noordwijk","ZH-Küste",52.240,4.430],
+ ["Langevelderslag","ZH-Küste",52.300,4.480],
+ // Noord-Holland Küste
+ ["IJmuiden","NH-Küste",52.460,4.555],
+ ["Wijk aan Zee","NH-Küste",52.493,4.594],
+ ["Bloemendaal a/Zee","NH-Küste",52.412,4.540],
+ ["Zandvoort","NH-Küste",52.371,4.524],
+ ["Castricum a/Zee","NH-Küste",52.548,4.620],
+ ["Camperduin","NH-Küste",52.730,4.660],
+ ["Callantsoog","NH-Küste",52.834,4.698],
+ ["Julianadorp","NH-Küste",52.900,4.715],
+ // Zeeland-Delta
+ ["Brouwersdam","Zeeland",51.755,3.849],
+ ["Scharendijke","Grevelingen",51.740,3.840],
+ ["Battenoord","Grevelingen",51.730,4.010],
+ ["Schelphoek","Oosterschelde",51.680,3.770],
+ ["Neeltje Jans","Oosterschelde",51.620,3.690],
+ ["Kamperland","Veerse Meer",51.585,3.700],
+ ["Domburg","Zeeland",51.567,3.509],
+ ["Vrouwenpolder","Zeeland",51.593,3.575],
+ ["Vlissingen","Zeeland",51.450,3.570],
+ ["Cadzand","Zeeland",51.375,3.405],
+ // Belgien
+ ["Knokke","BE-Küste",51.350,3.290],
+ ["Bredene","BE-Küste",51.245,2.975],
+ ["Oostende","BE-Küste",51.235,2.910],
+ ["Nieuwpoort","BE-Küste",51.155,2.720],
+ ["De Panne","BE-Küste",51.100,2.580],
+ // Deutschland
+ ["Steinhuder Meer","DE-See",52.490,9.320],
+ ["Norddeich","DE-Nordsee",53.617,7.158],
+ ["Schillig","DE-Nordsee",53.698,8.018],
+ ["St. Peter-Ording","DE-Nordsee",54.308,8.594],
+];
+
+const $=id=>document.getElementById(id);
+const COMPASS=['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+function haversine(a,b){
+  const R=6371,toR=x=>x*Math.PI/180;
+  const dLat=toR(b.lat-a.lat),dLon=toR(b.lon-a.lon);
+  const s=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+// grobe Fahrzeit: Luftlinie * Umwegfaktor / Schnitt
+function driveH(km){return km*1.32/78;}
+
+// Wind-Score aus Knoten (stützstellen-Interpolation), kite/wing-Sweetspot ~16-26 kn
+function windScore(kn){
+  const p=[[0,0],[8,18],[12,46],[16,73],[20,92],[26,100],[32,95],[38,76],[50,52]];
+  if(kn<=p[0][0])return 0;
+  for(let i=1;i<p.length;i++){if(kn<=p[i][0]){const[x0,y0]=p[i-1],[x1,y1]=p[i];return y0+(y1-y0)*(kn-x0)/(x1-x0);}}
+  return p[p.length-1][1];
+}
+
+// fill controls
+(function init(){
+  const t=new Date();const iso=d=>d.toISOString().slice(0,10);
+  const to=new Date(t);to.setDate(to.getDate()+3);
+  $('from').value=iso(t);$('from').min=iso(t);
+  const max=new Date(t);max.setDate(max.getDate()+13);
+  $('from').max=iso(max);$('to').min=iso(t);$('to').max=iso(max);$('to').value=iso(to);
+  for(let h=0;h<=23;h++){
+    const o1=new Option(String(h).padStart(2,'0'),h),o2=new Option(String(h).padStart(2,'0'),h);
+    $('h1').add(o1);$('h2').add(o2);
+  }
+  $('h1').value=10;$('h2').value=19;
+})();
+
+let lastRows=null, showAll=false;
+
+$('go').addEventListener('click',run);
+$('toggle').addEventListener('click',()=>{showAll=!showAll;render();});
+$('w').addEventListener('input',()=>{ if(lastRows) render(); });
+
+async function run(){
+  const from=$('from').value,to=$('to').value;
+  const h1=+$('h1').value,h2=+$('h2').value;
+  if(h2<=h1){setStatus('Tagesfenster: „bis“ muss nach „von“ liegen.',true);return;}
+  $('go').disabled=true;
+  setStatus('<span class="spin"></span>Hole Vorhersage für '+SPOTS.length+' Spots …');
+  $('meta').hidden=true;$('list').innerHTML='';
+  const lat=SPOTS.map(s=>s[2]).join(','),lon=SPOTS.map(s=>s[3]).join(',');
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
+    '&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m&wind_speed_unit=kn'+
+    '&timezone=Europe%2FBerlin&start_date='+from+'&end_date='+to;
+  try{
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    let data=await r.json();
+    if(!Array.isArray(data))data=[data];
+    lastRows=data.map((d,i)=>analyse(SPOTS[i],d,h1,h2)).filter(Boolean);
+    if(!lastRows.length){setStatus('Keine Daten für diesen Zeitraum erhalten.',true);$('go').disabled=false;return;}
+    showAll=false; render();
+  }catch(e){
+    setStatus('Abruf fehlgeschlagen ('+e.message+'). Internet prüfen und erneut versuchen.',true);
+  }
+  $('go').disabled=false;
+}
+
+function analyse(spot,d,h1,h2){
+  const H=d.hourly; if(!H||!H.time)return null;
+  const km=haversine(ORIGIN,{lat:spot[2],lon:spot[3]});
+  const byDay={};
+  for(let i=0;i<H.time.length;i++){
+    const t=H.time[i];const hr=+t.slice(11,13);
+    if(hr<h1||hr>h2)continue;
+    const day=t.slice(0,10);
+    (byDay[day]=byDay[day]||[]).push({hr,ws:H.wind_speed_10m[i],gs:H.wind_gusts_10m[i],wd:H.wind_direction_10m[i],series:i});
+  }
+  let best=null;
+  for(const day in byDay){
+    const arr=byDay[day];
+    const peak=Math.max(...arr.map(a=>a.ws));
+    const avg=arr.reduce((s,a)=>s+a.ws,0)/arr.length;
+    const blend=0.6*peak+0.4*avg;
+    const sc=windScore(blend);
+    if(!best||sc>best.sc){
+      const pk=arr.find(a=>a.ws===peak);
+      const gust=Math.max(...arr.map(a=>a.gs));
+      const rideable=arr.filter(a=>a.ws>=12).length;
+      best={day,sc,peak,avg,gust,dir:pk.wd,bestHr:pk.hr,rideable};
+    }
+  }
+  if(!best)return null;
+  // full-day series for the chosen day (for sparkline)
+  const dayFull=[];
+  for(let i=0;i<H.time.length;i++) if(H.time[i].slice(0,10)===best.day) dayFull.push({hr:+H.time[i].slice(11,13),ws:H.wind_speed_10m[i],gs:H.wind_gusts_10m[i]});
+  return {spot,km,wind:best,dayFull,h1,h2};
+}
+
+function render(){
+  const w=+$('w').value/100;
+  const kms=lastRows.map(r=>r.km),dmin=Math.min(...kms),dmax=Math.max(...kms);
+  lastRows.forEach(r=>{
+    const prox=dmax===dmin?100:100*(1-(r.km-dmin)/(dmax-dmin));
+    r.prox=prox;
+    r.total=(1-w)*r.wind.sc + w*prox;
+  });
+  const rows=[...lastRows].sort((a,b)=>b.total-a.total);
+  const shown=showAll?rows:rows.slice(0,12);
+  $('status').style.display='none';
+  $('meta').hidden=false;
+  const d=new Date(rows[0].wind.day);
+  $('metatxt').textContent=rows.length+' Spots · '+($('from').value===$('to').value?'1 Tag':'Zeitraum');
+  $('toggle').textContent=showAll?'nur Top 12':'alle '+rows.length+' zeigen';
+  $('list').innerHTML=shown.map((r,i)=>card(r,i)).join('');
+}
+
+function card(r,i){
+  const wd=r.wind;
+  const dir=COMPASS[Math.round(wd.dir/22.5)%16];
+  const dt=new Date(wd.day);
+  const dayLbl=WD[dt.getDay()]+' '+dt.getDate()+'.'+(dt.getMonth()+1)+'.';
+  const dh=driveH(r.km);
+  const driveTxt=dh<1?Math.round(dh*60)+' min':dh.toFixed(1).replace('.',',')+' h';
+  return `<div class="card ${i===0?'top':''}">
+    <div class="ctop">
+      <div class="rank">${i+1}</div>
+      <div class="name"><b>${r.spot[0]}</b><small>${r.spot[1]} · ${Math.round(r.km)} km · ~${driveTxt}</small></div>
+      <div class="score"><b>${Math.round(r.total)}</b><small>Score</small></div>
+    </div>
+    <div class="metrics">
+      <div><span>Peak</span><b>${wd.peak.toFixed(1)} kn</b></div>
+      <div><span>Böen</span><b class="v-gust">${Math.round(wd.gust)}</b></div>
+      <div><span>Richtung</span><b class="v-dir"><span class="arrow">${arrow(wd.dir)}</span>${dir}</b></div>
+      <div><span>fahrbar</span><b>${wd.rideable} h</b></div>
+    </div>
+    <div class="spark">
+      ${spark(r)}
+      <div class="day">${dayLbl}<small>Peak ${String(wd.bestHr).padStart(2,'0')} Uhr</small></div>
+    </div>
+  </div>`;
+}
+
+function arrow(fromDeg){
+  // Pfeil zeigt in Strömungsrichtung (woher+180)
+  const rot=(fromDeg+180)%360;
+  return `<svg viewBox="0 0 24 24" width="15" height="15" style="transform:rotate(${rot}deg)">
+    <path d="M12 3 L17 13 L12 10.5 L7 13 Z" fill="#34E5C9"/></svg>`;
+}
+
+function spark(r){
+  const W=240,H=42,pad=3;
+  const hrs=r.dayFull; if(!hrs.length)return '';
+  const xs=h=>pad+(W-2*pad)*(h/23);
+  const maxV=Math.max(14,...hrs.map(a=>Math.max(a.ws,a.gs)));
+  const y=v=>H-pad-(H-2*pad)*(v/maxV);
+  const line=key=>hrs.map((a,i)=>(i?'L':'M')+xs(a.hr).toFixed(1)+' '+y(a[key]).toFixed(1)).join(' ');
+  const x1=xs(r.h1),x2=xs(r.h2);
+  const thr=y(12); // 12-kn-Schwelle
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <rect x="${x1.toFixed(1)}" y="0" width="${(x2-x1).toFixed(1)}" height="${H}" fill="#21404C" opacity="0.55"/>
+    <line x1="0" y1="${thr.toFixed(1)}" x2="${W}" y2="${thr.toFixed(1)}" stroke="#3a5a64" stroke-width="1" stroke-dasharray="3 4"/>
+    <path d="${line('gs')}" fill="none" stroke="#F4A93C" stroke-width="1.4" opacity="0.85"/>
+    <path d="${line('ws')}" fill="none" stroke="#34E5C9" stroke-width="2"/>
+  </svg>`;
+}
+
+function setStatus(html,err){
+  const s=$('status');s.style.display='block';s.className='status'+(err?' err':'');s.innerHTML=html;
+}
+</script>
+</body>
+</html>
