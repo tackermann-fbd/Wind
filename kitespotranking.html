@@ -125,10 +125,13 @@
   .arrow{width:15px; height:15px; flex:none}
   .arrow svg{display:block}
   /* sparkline */
-  .spark{margin-top:9px; padding-left:41px; display:flex; align-items:center; gap:9px}
-  .spark svg{flex:1; display:block; height:42px; width:100%}
-  .day{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink); text-align:right; flex:none; min-width:54px}
-  .day small{display:block; color:var(--mut); font-size:9px; letter-spacing:.1em}
+  .days{margin-top:9px; display:flex; flex-direction:column; gap:2px}
+  .spark{padding:5px 6px 5px 41px; display:flex; align-items:center; gap:9px; border-radius:8px}
+  .spark.best{background:rgba(52,229,201,.07)}
+  .spark svg{flex:1; display:block; height:38px; width:100%}
+  .day{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink); text-align:right; flex:none; min-width:62px}
+  .day small{display:block; color:var(--mut); font-size:9px; letter-spacing:.08em}
+  .spark.best .day b{color:var(--cyan)}
   footer{color:var(--mut); font-size:11px; line-height:1.55; margin-top:18px; padding:0 2px}
   footer a{color:var(--cyan)}
   .legend{display:flex; gap:14px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--mut); margin:0 2px 12px; flex-wrap:wrap}
@@ -316,32 +319,30 @@ async function run(){
 function analyse(spot,d,h1,h2){
   const H=d.hourly; if(!H||!H.time)return null;
   const km=haversine(ORIGIN,{lat:spot[2],lon:spot[3]});
-  const byDay={};
+  const dayMap={};
   for(let i=0;i<H.time.length;i++){
-    const t=H.time[i];const hr=+t.slice(11,13);
-    if(hr<h1||hr>h2)continue;
-    const day=t.slice(0,10);
-    (byDay[day]=byDay[day]||[]).push({hr,ws:H.wind_speed_10m[i],gs:H.wind_gusts_10m[i],wd:H.wind_direction_10m[i],series:i});
+    const t=H.time[i];const hr=+t.slice(11,13);const day=t.slice(0,10);
+    const rec={hr,ws:H.wind_speed_10m[i],gs:H.wind_gusts_10m[i],wd:H.wind_direction_10m[i]};
+    const e=dayMap[day]||(dayMap[day]={window:[],full:[]});
+    e.full.push(rec);
+    if(hr>=h1&&hr<=h2)e.window.push(rec);
   }
-  let best=null;
-  for(const day in byDay){
-    const arr=byDay[day];
+  const days=[];
+  for(const day of Object.keys(dayMap).sort()){
+    const arr=dayMap[day].window;
+    if(!arr.length)continue;
     const peak=Math.max(...arr.map(a=>a.ws));
     const avg=arr.reduce((s,a)=>s+a.ws,0)/arr.length;
     const blend=0.6*peak+0.4*avg;
     const sc=windScore(blend);
-    if(!best||sc>best.sc){
-      const pk=arr.find(a=>a.ws===peak);
-      const gust=Math.max(...arr.map(a=>a.gs));
-      const rideable=arr.filter(a=>a.ws>=12).length;
-      best={day,sc,peak,avg,gust,dir:pk.wd,bestHr:pk.hr,rideable};
-    }
+    const pk=arr.find(a=>a.ws===peak);
+    const gust=Math.max(...arr.map(a=>a.gs));
+    const rideable=arr.filter(a=>a.ws>=12).length;
+    days.push({day,sc,peak,avg,gust,dir:pk.wd,bestHr:pk.hr,rideable,dayFull:dayMap[day].full});
   }
-  if(!best)return null;
-  // full-day series for the chosen day (for sparkline)
-  const dayFull=[];
-  for(let i=0;i<H.time.length;i++) if(H.time[i].slice(0,10)===best.day) dayFull.push({hr:+H.time[i].slice(11,13),ws:H.wind_speed_10m[i],gs:H.wind_gusts_10m[i]});
-  return {spot,km,wind:best,dayFull,h1,h2};
+  if(!days.length)return null;
+  const best=days.reduce((b,x)=>x.sc>b.sc?x:b,days[0]);
+  return {spot,km,wind:best,days,h1,h2};
 }
 
 function render(){
@@ -365,10 +366,9 @@ function render(){
 function card(r,i){
   const wd=r.wind;
   const dir=COMPASS[Math.round(wd.dir/22.5)%16];
-  const dt=new Date(wd.day);
-  const dayLbl=WD[dt.getDay()]+' '+dt.getDate()+'.'+(dt.getMonth()+1)+'.';
   const dh=driveH(r.km);
   const driveTxt=dh<1?Math.round(dh*60)+' min':dh.toFixed(1).replace('.',',')+' h';
+  const rows=r.days.map(day=>dayRow(day,r)).join('');
   return `<div class="card ${i===0?'top':''}">
     <div class="ctop">
       <div class="rank">${i+1}</div>
@@ -381,10 +381,18 @@ function card(r,i){
       <div><span>Richtung</span><b class="v-dir"><span class="arrow">${arrow(wd.dir)}</span>${dir}</b></div>
       <div><span>fahrbar</span><b>${wd.rideable} h</b></div>
     </div>
-    <div class="spark">
-      ${spark(r)}
-      <div class="day">${dayLbl}<small>Peak ${String(wd.bestHr).padStart(2,'0')} Uhr</small></div>
-    </div>
+    <div class="days">${rows}</div>
+  </div>`;
+}
+
+function dayRow(day,r){
+  const dt=new Date(day.day);
+  const dayLbl=WD[dt.getDay()]+' '+dt.getDate()+'.'+(dt.getMonth()+1)+'.';
+  const best=day===r.wind;
+  const dir=COMPASS[Math.round(day.dir/22.5)%16];
+  return `<div class="spark${best?' best':''}">
+    ${spark(day,r.h1,r.h2)}
+    <div class="day"><b>${dayLbl}</b><small>${day.peak.toFixed(0)} kn ${dir} · ${String(day.bestHr).padStart(2,'0')} Uhr</small></div>
   </div>`;
 }
 
@@ -395,14 +403,14 @@ function arrow(fromDeg){
     <path d="M12 3 L17 13 L12 10.5 L7 13 Z" fill="#34E5C9"/></svg>`;
 }
 
-function spark(r){
+function spark(day,h1,h2){
   const W=240,H=42,pad=3;
-  const hrs=r.dayFull; if(!hrs.length)return '';
+  const hrs=day.dayFull; if(!hrs.length)return '';
   const xs=h=>pad+(W-2*pad)*(h/23);
   const maxV=Math.max(14,...hrs.map(a=>Math.max(a.ws,a.gs)));
   const y=v=>H-pad-(H-2*pad)*(v/maxV);
   const line=key=>hrs.map((a,i)=>(i?'L':'M')+xs(a.hr).toFixed(1)+' '+y(a[key]).toFixed(1)).join(' ');
-  const x1=xs(r.h1),x2=xs(r.h2);
+  const x1=xs(h1),x2=xs(h2);
   const thr=y(12); // 12-kn-Schwelle
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
     <rect x="${x1.toFixed(1)}" y="0" width="${(x2-x1).toFixed(1)}" height="${H}" fill="#21404C" opacity="0.55"/>
