@@ -143,6 +143,7 @@
   .tile.empty{background:var(--bg); opacity:.4}
   .day{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink); text-align:right; flex:none; width:78px; white-space:nowrap; overflow:hidden}
   .day small{display:block; color:var(--mut); font-size:9px; letter-spacing:.04em}
+  .cdot{display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:3px; vertical-align:1px}
   .trow.best .day b{color:var(--cyan)}
   .metabtns{display:flex; gap:4px; align-items:center}
   .scale{display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace;
@@ -206,7 +207,8 @@
     <span><i style="background:var(--amber)"></i>Böen</span>
     <span><i style="background:var(--line);height:8px;width:14px"></i>Session-Fenster</span>
   </div>
-  Kacheln: große Zahl = Wind, kleine = Böen, Pfeil = Windrichtung. „Grafik“/„Kacheln“ schaltet die Ansicht um.
+  Kacheln: große Zahl = Wind, kleine = Böen, Pfeil = Windrichtung, farbiger Balken unten = Konfidenz. „Grafik“/„Kacheln“ schaltet die Ansicht um.
+  Konfidenz = Übereinstimmung der Modelle ECMWF, ICON &amp; GFS (geringe Streuung → <span style="color:var(--cyan)">hoch</span>, große → <span style="color:var(--red)">gering</span>); unsichere Tage werden im Score leicht abgewertet.
   Wind in Knoten, 10 m. Distanz = Luftlinie ab Düsseldorf, Fahrzeit grob geschätzt.
   Küsten- &amp; Delta-Spots sind etablierte Kitestrände, haben aber lokale Zonen/Badezeiten — vor Ort auf die Schilder achten.
   Daten: <a href="https://open-meteo.com">open-meteo.com</a> (CC-BY 4.0).
@@ -214,6 +216,12 @@
 
 <script>
 const ORIGIN={lat:51.2277,lon:6.7735};
+// Wettermodelle für den Konsens. Reihenfolge = Priorität (Richtung kommt vom ersten verfügbaren).
+const MODELS=[
+ {id:'ecmwf_ifs025', w:1.0,  label:'ECMWF'},
+ {id:'icon_seamless',w:0.9,  label:'ICON'},
+ {id:'gfs_seamless', w:0.85, label:'GFS'},
+];
 // Legale / etablierte Kitespots. region kurz für die Zeile.
 const SPOTS=[
  // IJsselmeer & Randmeren
@@ -331,16 +339,51 @@ function windColor(kn){
 }
 function textOn(hex){const[r,g,b]=hex2rgb(hex);return (0.299*r+0.587*g+0.114*b)>150?'#06222b':'#E8F2F1';}
 
+// Konfidenz aus Modell-Streuung (std in kn) + Anzahl beteiligter Modelle
+function confScore(std,k){
+  if(k<2)return {score:null,tier:'1 Mod.',col:'#8AA8AC'};
+  const score=Math.max(0,Math.min(100,Math.round(100-std*16)));
+  const tier=score>=70?'hoch':score>=45?'mittel':'gering';
+  const col=score>=70?'#34E5C9':score>=45?'#F4A93C':'#F26d5b';
+  return {score,tier,col};
+}
+// pro Stunde die verfügbaren Modelle zu einem gewichteten Mittel + Streuung zusammenfassen
+function consensus(H){
+  const present=MODELS.filter(m=>Array.isArray(H['wind_speed_10m_'+m.id]));
+  const used=present.length?present:[{id:null,w:1}];
+  const n=H.time.length,C=new Array(n);
+  for(let i=0;i<n;i++){
+    let wsum=0,wn=0,gsum=0,gn=0,dir=null;const vals=[];
+    for(const m of used){
+      const ws=m.id?H['wind_speed_10m_'+m.id]:H.wind_speed_10m;
+      const gs=m.id?H['wind_gusts_10m_'+m.id]:H.wind_gusts_10m;
+      const wd=m.id?H['wind_direction_10m_'+m.id]:H.wind_direction_10m;
+      const v=ws&&ws[i];
+      if(v==null||isNaN(v))continue;
+      vals.push(v);wsum+=v*m.w;wn+=m.w;
+      if(gs&&gs[i]!=null){gsum+=gs[i]*m.w;gn+=m.w;}
+      if(dir==null&&wd&&wd[i]!=null)dir=wd[i];
+    }
+    if(!vals.length){C[i]=null;continue;}
+    const mean=wsum/wn;
+    const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+    const std=Math.sqrt(vals.reduce((a,b)=>a+(b-avg)**2,0)/vals.length);
+    C[i]={ws:mean,gs:gn?gsum/gn:mean,wd:dir==null?0:dir,std,k:vals.length};
+  }
+  return C;
+}
+
 async function run(){
   const from=$('from').value,to=$('to').value;
   const h1=+$('h1').value,h2=+$('h2').value;
   if(h2<=h1){setStatus('Tagesfenster: „bis“ muss nach „von“ liegen.',true);return;}
   $('go').disabled=true;
-  setStatus('<span class="spin"></span>Hole Vorhersage für '+SPOTS.length+' Spots …');
+  setStatus('<span class="spin"></span>Hole '+MODELS.length+' Modelle für '+SPOTS.length+' Spots …');
   $('meta').hidden=true;$('list').innerHTML='';
   const lat=SPOTS.map(s=>s[2]).join(','),lon=SPOTS.map(s=>s[3]).join(',');
   const url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
     '&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m&wind_speed_unit=kn'+
+    '&models='+MODELS.map(m=>m.id).join(',')+
     '&timezone=Europe%2FBerlin&start_date='+from+'&end_date='+to;
   try{
     const r=await fetch(url);
@@ -359,10 +402,12 @@ async function run(){
 function analyse(spot,d,h1,h2){
   const H=d.hourly; if(!H||!H.time)return null;
   const km=haversine(ORIGIN,{lat:spot[2],lon:spot[3]});
+  const C=consensus(H);
   const dayMap={};
   for(let i=0;i<H.time.length;i++){
+    const c=C[i]; if(!c)continue;
     const t=H.time[i];const hr=+t.slice(11,13);const day=t.slice(0,10);
-    const rec={hr,ws:H.wind_speed_10m[i],gs:H.wind_gusts_10m[i],wd:H.wind_direction_10m[i]};
+    const rec={hr,ws:c.ws,gs:c.gs,wd:c.wd,std:c.std,k:c.k};
     const e=dayMap[day]||(dayMap[day]={window:[],full:[]});
     e.full.push(rec);
     if(hr>=h1&&hr<=h2)e.window.push(rec);
@@ -378,7 +423,9 @@ function analyse(spot,d,h1,h2){
     const pk=arr.find(a=>a.ws===peak);
     const gust=Math.max(...arr.map(a=>a.gs));
     const rideable=arr.filter(a=>a.ws>=12).length;
-    days.push({day,sc,peak,avg,gust,dir:pk.wd,bestHr:pk.hr,rideable,dayFull:dayMap[day].full});
+    const avgStd=arr.reduce((s,a)=>s+a.std,0)/arr.length;
+    const conf=confScore(avgStd,Math.min(...arr.map(a=>a.k)));
+    days.push({day,sc,peak,avg,gust,dir:pk.wd,bestHr:pk.hr,rideable,conf,dayFull:dayMap[day].full});
   }
   if(!days.length)return null;
   const best=days.reduce((b,x)=>x.sc>b.sc?x:b,days[0]);
@@ -391,7 +438,10 @@ function render(){
   lastRows.forEach(r=>{
     const prox=dmax===dmin?100:100*(1-(r.km-dmin)/(dmax-dmin));
     r.prox=prox;
-    r.total=(1-w)*r.wind.sc + w*prox;
+    // unsichere Tage leicht abwerten (Konfidenz 0..100 -> Faktor 0,7..1,0; unbekannt = 0,85)
+    const cs=r.wind.conf.score;
+    const cf=cs==null?0.85:0.7+0.3*cs/100;
+    r.total=((1-w)*r.wind.sc + w*prox)*cf;
   });
   const rows=[...lastRows].sort((a,b)=>b.total-a.total);
   const shown=showAll?rows:rows.slice(0,12);
@@ -421,6 +471,7 @@ function card(r,i){
       <div><span>Böen</span><b class="v-gust">${Math.round(wd.gust)}</b></div>
       <div><span>Richtung</span><b class="v-dir"><span class="arrow">${arrow(wd.dir)}</span>${dir}</b></div>
       <div><span>fahrbar</span><b>${wd.rideable} h</b></div>
+      <div><span>Konfidenz</span><b style="color:${wd.conf.col}">${wd.conf.tier}${wd.conf.score==null?'':' '+wd.conf.score+'%'}</b></div>
     </div>
     <div class="days">${view==='tiles'?hourHeader(r):''}${rows}</div>
   </div>`;
@@ -441,7 +492,7 @@ function dayRow(day,r){
   const body=view==='tiles'?tileRow(day,r):spark(day,r.h1,r.h2);
   return `<div class="trow ${cls}${best?' best':''}">
     ${body}
-    <div class="day"><b>${dayLbl}</b><small>${day.peak.toFixed(0)}kn ${dir} ${String(day.bestHr).padStart(2,'0')}h</small></div>
+    <div class="day"><b>${dayLbl}</b><small><span class="cdot" style="background:${day.conf.col}"></span>${day.peak.toFixed(0)}kn ${dir}</small></div>
   </div>`;
 }
 
@@ -451,7 +502,8 @@ function tileRow(day,r){
     const a=day.dayFull.find(x=>x.hr===h);
     if(!a){cells+='<div class="tile empty"></div>';continue;}
     const bg=windColor(a.ws),fg=textOn(bg),rot=(a.wd+180)%360;
-    cells+=`<div class="tile" style="background:${bg};color:${fg}">
+    const cc=confScore(a.std,a.k).col;
+    cells+=`<div class="tile" style="background:${bg};color:${fg};box-shadow:inset 0 -3px 0 ${cc}">
       <span class="ar" style="transform:rotate(${rot}deg)">↑</span>
       <b>${Math.round(a.ws)}</b>
       <span class="g">${Math.round(a.gs)}</span>
